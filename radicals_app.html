@@ -1,0 +1,1426 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>漢字部首 · Kanji Radicals</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+JP:wght@400;700&family=Shippori+Mincho:wght@400;700&family=Crimson+Pro:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --ink: #1a1208;
+    --ink2: #2d2010;
+    --paper: #f5eedf;
+    --paper2: #ede3ce;
+    --paper3: #e0d4ba;
+    --brush: #1a1208;
+    --red: #c0392b;
+    --gold: #b8860b;
+    --gold2: #d4a017;
+    --guide: rgba(180,140,80,0.18);
+    --stroke-color: #2c5f8a;
+    --num-color: #c0392b;
+    --shadow: rgba(26,18,8,0.25);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+
+  html, body {
+    height: 100%; overflow: hidden;
+    background: var(--ink);
+    font-family: 'Crimson Pro', Georgia, serif;
+    color: var(--ink);
+    touch-action: none;
+  }
+
+  /* ── NOISE TEXTURE ── */
+  body::before {
+    content: '';
+    position: fixed; inset: 0; z-index: 0; pointer-events: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+    opacity: 0.5;
+  }
+
+  #app {
+    position: fixed; inset: 0; z-index: 1;
+    display: flex; flex-direction: column;
+  }
+
+  /* ── TOP BAR ── */
+  #topbar {
+    background: var(--ink2);
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 8px 14px;
+    border-bottom: 1px solid rgba(180,140,80,0.3);
+    flex-shrink: 0;
+    gap: 8px;
+  }
+
+  #topbar h1 {
+    font-family: 'Noto Serif JP', serif;
+    color: var(--gold2);
+    font-size: 1.1rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .top-controls {
+    display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: flex-end;
+  }
+
+  select, button.pill {
+    background: rgba(180,140,80,0.12);
+    border: 1px solid rgba(180,140,80,0.35);
+    color: var(--paper);
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-family: 'Crimson Pro', serif;
+    font-size: 0.85rem;
+    cursor: pointer;
+    outline: none;
+    transition: background 0.2s;
+  }
+  select:hover, button.pill:hover { background: rgba(180,140,80,0.25); }
+  select option { background: var(--ink2); color: var(--paper); }
+
+  /* ── VIEWS ── */
+  #grid-view, #study-view {
+    flex: 1; overflow: hidden; display: flex; flex-direction: column;
+  }
+
+  /* ── GRID VIEW ── */
+  #grid-header {
+    background: var(--ink2);
+    padding: 8px 14px;
+    display: flex; align-items: center; gap: 10px;
+    border-bottom: 1px solid rgba(180,140,80,0.2);
+    flex-shrink: 0;
+  }
+  #grid-header span { color: var(--paper2); font-size: 0.85rem; }
+
+  #stroke-filter {
+    display: flex; gap: 4px; flex-wrap: wrap;
+  }
+  .sf-btn {
+    background: rgba(180,140,80,0.1);
+    border: 1px solid rgba(180,140,80,0.25);
+    color: var(--paper2);
+    padding: 3px 9px;
+    border-radius: 12px;
+    font-size: 0.78rem;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: 'Crimson Pro', serif;
+  }
+  .sf-btn.active {
+    background: var(--gold);
+    color: var(--ink);
+    border-color: var(--gold);
+    font-weight: 600;
+  }
+
+  #radical-grid {
+    flex: 1; overflow-y: auto; padding: 10px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+    align-content: start;
+    background: var(--ink);
+  }
+
+  @media (min-width: 480px) {
+    #radical-grid { grid-template-columns: repeat(5, 1fr); }
+  }
+  @media (min-width: 700px) {
+    #radical-grid { grid-template-columns: repeat(7, 1fr); }
+  }
+  #radical-grid::-webkit-scrollbar { width: 4px; }
+  #radical-grid::-webkit-scrollbar-thumb { background: rgba(180,140,80,0.3); border-radius: 2px; }
+
+  .radical-card {
+    background: var(--paper2);
+    border-radius: 6px;
+    padding: 10px 4px 8px;
+    cursor: pointer;
+    display: flex; flex-direction: column; align-items: center; gap: 3px;
+    transition: transform 0.15s, box-shadow 0.15s;
+    border: 1px solid rgba(180,140,80,0.3);
+    position: relative;
+    overflow: hidden;
+    min-height: 80px;
+    justify-content: center;
+  }
+  .radical-card::before {
+    content: '';
+    position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    background: linear-gradient(90deg, var(--gold), transparent);
+    opacity: 0;
+    transition: opacity 0.15s;
+  }
+  .radical-card:hover { transform: translateY(-2px); box-shadow: 0 4px 12px var(--shadow); }
+  .radical-card:hover::before { opacity: 1; }
+  .radical-card:active { transform: scale(0.95); }
+
+  .rc-char {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 2.2rem;
+    line-height: 1;
+    color: var(--ink);
+    user-select: none;
+  }
+  .rc-num {
+    font-size: 0.6rem;
+    color: var(--gold);
+    font-weight: 600;
+    letter-spacing: 0.05em;
+  }
+  .rc-meaning {
+    font-size: 0.62rem;
+    color: #5a4020;
+    text-align: center;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    width: 100%;
+    padding: 0 2px;
+  }
+  .rc-strokes {
+    font-size: 0.58rem;
+    color: rgba(90,64,32,0.6);
+  }
+
+  /* ── STUDY VIEW ── */
+  #study-view {
+    background: var(--ink);
+  }
+
+  #study-header {
+    background: var(--ink2);
+    padding: 8px 14px;
+    display: flex; align-items: center; justify-content: space-between;
+    border-bottom: 1px solid rgba(180,140,80,0.25);
+    flex-shrink: 0;
+  }
+
+  #back-btn {
+    background: none; border: none; color: var(--gold2);
+    font-size: 1.1rem; cursor: pointer; padding: 4px 8px 4px 0;
+    font-family: 'Crimson Pro', serif;
+    display: flex; align-items: center; gap: 6px;
+  }
+  #back-btn:hover { color: var(--paper); }
+
+  #radical-info {
+    text-align: center; flex: 1;
+  }
+  #info-char {
+    font-family: 'Noto Serif JP', serif;
+    font-size: 1.6rem;
+    color: var(--gold2);
+    line-height: 1;
+  }
+  #info-meaning {
+    font-size: 0.82rem;
+    color: var(--paper2);
+    font-style: italic;
+  }
+  #info-meta {
+    font-size: 0.72rem;
+    color: rgba(213,189,143,0.6);
+  }
+
+  .nav-btn {
+    background: rgba(180,140,80,0.12);
+    border: 1px solid rgba(180,140,80,0.3);
+    color: var(--gold2);
+    width: 34px; height: 34px;
+    border-radius: 50%;
+    font-size: 1rem;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: background 0.15s;
+    flex-shrink: 0;
+  }
+  .nav-btn:hover { background: rgba(180,140,80,0.25); }
+
+  #study-body {
+    flex: 1; display: flex; flex-direction: column;
+    overflow: hidden; gap: 0;
+  }
+
+  /* Reference section */
+  #ref-section {
+    background: var(--paper);
+    flex-shrink: 0;
+    padding: 10px;
+    display: flex; align-items: center; justify-content: center; gap: 16px;
+    border-bottom: 2px solid var(--paper3);
+    position: relative;
+  }
+
+  #ref-section::after {
+    content: attr(data-label);
+    position: absolute; top: 4px; left: 10px;
+    font-size: 0.6rem; color: rgba(90,64,32,0.4);
+    letter-spacing: 0.1em; text-transform: uppercase;
+    font-family: 'Crimson Pro', serif;
+  }
+
+  #stroke-order-container {
+    width: 100px; height: 100px;
+    position: relative;
+    flex-shrink: 0;
+  }
+
+  #stroke-order-svg {
+    width: 100%; height: 100%;
+  }
+
+  #stroke-order-fallback {
+    width: 100%; height: 100%;
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Noto Serif JP', serif;
+    font-size: 5rem;
+    color: var(--ink);
+    line-height: 1;
+  }
+
+  .stroke-legend {
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .stroke-legend-item {
+    display: flex; align-items: center; gap: 6px;
+    font-size: 0.72rem; color: #5a4020;
+  }
+  .stroke-dot {
+    width: 8px; height: 8px; border-radius: 50%;
+    background: var(--num-color);
+    display: flex; align-items: center; justify-content: center;
+    font-size: 0.5rem; color: white; font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  /* Meanings panel */
+  #meanings-row {
+    background: var(--paper3);
+    padding: 8px 14px;
+    display: flex; gap: 12px; flex-wrap: wrap; align-items: center;
+    border-bottom: 1px solid rgba(180,140,80,0.3);
+    flex-shrink: 0;
+  }
+  .meaning-item {
+    display: flex; align-items: center; gap: 5px;
+    font-size: 1.8rem;
+  }
+  .meaning-lang {
+    font-size: 1.1rem; color: var(--gold);
+    text-transform: uppercase; letter-spacing: 0.06em;
+    font-weight: 600;
+  }
+  .meaning-text {
+    color: var(--ink);
+    font-style: italic;
+    font-size: 1.8rem;
+  }
+
+  /* Canvas section */
+  #canvas-section {
+    flex: 1;
+    background: var(--paper);
+    position: relative;
+    overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+  }
+
+  #canvas-section::after {
+    content: attr(data-hint);
+    position: absolute; bottom: 8px; left: 50%; transform: translateX(-50%);
+    font-size: 0.65rem; color: rgba(90,64,32,0.4);
+    white-space: nowrap;
+    pointer-events: none;
+    letter-spacing: 0.05em;
+  }
+
+  #guide-wrap {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  #guide-char {
+    font-family: 'Noto Serif JP', serif;
+    color: #c0392b;
+    user-select: none;
+    pointer-events: none;
+    transition: opacity 0.3s;
+    line-height: 1;
+    display: block;
+    flex-shrink: 0;
+  }
+
+  #canvas-grid {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    z-index: 0; pointer-events: none;
+  }
+
+  #guide-canvas {
+    display: none;
+  }
+
+  #guide-wrap {
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    pointer-events: none;
+    z-index: 1;
+    overflow: hidden;
+  }
+
+  #guide-char {
+    font-family: 'Noto Serif JP', serif;
+    color: #c0392b;
+    line-height: 1;
+    user-select: none;
+    pointer-events: none;
+    transition: opacity 0.3s;
+    display: block;
+    flex-shrink: 0;
+  }
+
+  #draw-canvas {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    cursor: crosshair;
+    z-index: 2;
+    touch-action: none;
+  }
+
+  /* Grid lines on canvas */
+
+  /* Clear flash */
+  .clear-flash {
+    position: absolute; inset: 0;
+    background: rgba(180,140,80,0.15);
+    z-index: 10; pointer-events: none;
+    animation: flash 0.25s ease-out forwards;
+  }
+  @keyframes flash {
+    0% { opacity: 1; }
+    100% { opacity: 0; }
+  }
+
+  /* Brush size control */
+  #brush-controls {
+    position: absolute; top: 8px; right: 8px;
+    display: flex; flex-direction: column; gap: 6px;
+    z-index: 5;
+  }
+  .brush-btn {
+    background: rgba(245,238,223,0.9);
+    border: 1px solid rgba(180,140,80,0.4);
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    transition: all 0.15s;
+    flex-shrink: 0;
+  }
+  .brush-btn:hover { background: var(--paper2); }
+  .brush-btn.active { background: var(--gold); border-color: var(--gold); }
+  .brush-dot { border-radius: 50%; background: var(--ink); }
+
+  /* Mode toggle */
+  #mode-toggle {
+    position: absolute; top: 8px; left: 8px;
+    z-index: 5;
+    display: flex; flex-direction: column; gap: 4px;
+  }
+  .mode-btn {
+    background: rgba(245,238,223,0.9);
+    border: 1px solid rgba(180,140,80,0.4);
+    border-radius: 6px;
+    padding: 4px 8px;
+    font-size: 0.65rem;
+    cursor: pointer;
+    color: var(--ink);
+    font-family: 'Crimson Pro', serif;
+    transition: all 0.15s;
+    white-space: nowrap;
+  }
+  .mode-btn.active { background: var(--ink); color: var(--gold2); border-color: var(--gold); }
+
+  /* Loading spinner */
+  .loading-ring {
+    width: 40px; height: 40px;
+    border: 3px solid rgba(180,140,80,0.2);
+    border-top-color: var(--gold);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+
+  /* Swipe indicator */
+  .swipe-hint {
+    position: absolute; bottom: 30px; left: 50%; transform: translateX(-50%);
+    display: flex; gap: 4px; pointer-events: none; z-index: 5;
+    opacity: 0; animation: fadeHint 2s 1s ease-in-out forwards;
+  }
+  @keyframes fadeHint { 0%{opacity:0} 20%{opacity:0.6} 80%{opacity:0.6} 100%{opacity:0} }
+
+  /* Progress bar */
+  #progress-bar {
+    height: 2px;
+    background: rgba(180,140,80,0.15);
+    flex-shrink: 0;
+  }
+  #progress-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--gold), var(--gold2));
+    transition: width 0.3s;
+  }
+
+  /* Responsive */
+  @media (min-width: 600px) {
+    #study-body { flex-direction: row; }
+    #ref-section {
+      flex-direction: column; width: 160px; flex-shrink: 0;
+      border-bottom: none; border-right: 2px solid var(--paper3);
+      height: 100%;
+    }
+    #stroke-order-container { width: 120px; height: 120px; }
+    #meanings-row { flex-direction: column; align-items: flex-start; }
+    #canvas-section { flex: 1; height: 100%; }
+    /* guide char sized via vmin, no override needed */
+  }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div id="app">
+  <!-- TOP BAR -->
+  <div id="topbar">
+    <h1>漢字部首</h1>
+    <div class="top-controls">
+      <select id="lang-select">
+        <option value="en">English</option>
+        <option value="ru">Русский</option>
+        <option value="de">Deutsch</option>
+        <option value="fr">Français</option>
+        <option value="ja">日本語</option>
+      </select>
+      <button class="pill" id="toggle-view-btn">📖 Study</button>
+    </div>
+  </div>
+
+  <!-- GRID VIEW -->
+  <div id="grid-view">
+    <div id="grid-header">
+      <span id="grid-label">Strokes:</span>
+      <div id="stroke-filter"></div>
+    </div>
+    <div id="radical-grid"></div>
+  </div>
+
+  <!-- STUDY VIEW -->
+  <div id="study-view" class="hidden">
+    <div id="progress-bar"><div id="progress-fill"></div></div>
+    <div id="study-header">
+      <button id="back-btn">← <span id="back-label">List</span></button>
+      <div id="radical-info">
+        <div id="info-char">一</div>
+        <div id="info-meaning">one</div>
+        <div id="info-meta">#1 · 1 stroke</div>
+      </div>
+      <div style="display:flex;gap:6px">
+        <button class="nav-btn" id="prev-btn">←</button>
+        <button class="nav-btn" id="next-btn">→</button>
+      </div>
+    </div>
+
+    <div id="study-body">
+      <div id="ref-section" data-label="Reference">
+        <div id="stroke-order-container">
+          <div id="stroke-order-fallback"></div>
+          <svg id="stroke-order-svg" viewBox="0 0 109 109" class="hidden"></svg>
+        </div>
+        <div class="stroke-legend" id="stroke-legend"></div>
+      </div>
+
+      <div id="meanings-row"></div>
+
+      <div id="canvas-section" data-hint="">
+        <canvas id="canvas-grid"></canvas>
+        <div id="guide-wrap">
+          <div id="guide-char"></div>
+        </div>
+        <canvas id="draw-canvas"></canvas>
+
+        <div id="brush-controls">
+          <button class="brush-btn active" id="b-thin" style="width:28px;height:28px" title="Thin">
+            <div class="brush-dot" style="width:2px;height:2px"></div>
+          </button>
+          <button class="brush-btn" id="b-medium" style="width:28px;height:28px" title="Medium">
+            <div class="brush-dot" style="width:5px;height:5px"></div>
+          </button>
+          <button class="brush-btn" id="b-thick" style="width:32px;height:32px" title="Thick">
+            <div class="brush-dot" style="width:9px;height:9px"></div>
+          </button>
+        </div>
+
+        <div id="mode-toggle">
+          <button class="mode-btn active" id="mode-free" data-mode="free">✎ Free</button>
+          <button class="mode-btn" id="mode-over" data-mode="over">◎ Trace</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+//  DATA: ALL 214 KANGXI RADICALS
+// ═══════════════════════════════════════
+const RADICALS = [
+  // 1 stroke
+  {n:1,c:'一',s:1,en:'one',ru:'один',de:'eins',fr:'un',ja:'いち',kun:'ひと'},
+  {n:2,c:'丨',s:1,en:'line',ru:'черта',de:'Linie',fr:'ligne',ja:'ぼう',kun:'たてぼう'},
+  {n:3,c:'丶',s:1,en:'dot',ru:'точка',de:'Punkt',fr:'point',ja:'てん',kun:'てん'},
+  {n:4,c:'丿',s:1,en:'slash',ru:'косая черта',de:'Schrägstrich',fr:'barre',ja:'の',kun:'のかたち'},
+  {n:5,c:'乙',s:1,en:'second',ru:'второй',de:'zweite',fr:'deuxième',ja:'おつ',kun:'おと'},
+  {n:6,c:'亅',s:1,en:'hook',ru:'крюк',de:'Haken',fr:'crochet',ja:'はねぼう',kun:'はね'},
+  // 2 strokes
+  {n:7,c:'二',s:2,en:'two',ru:'два',de:'zwei',fr:'deux',ja:'に',kun:'ふた'},
+  {n:8,c:'亠',s:2,en:'lid',ru:'крышка',de:'Deckel',fr:'couvercle',ja:'なべぶた',kun:'ふた'},
+  {n:9,c:'人',s:2,en:'person',ru:'человек',de:'Mensch',fr:'personne',ja:'ひと',kun:'ひと'},
+  {n:10,c:'儿',s:2,en:'legs',ru:'ноги',de:'Beine',fr:'jambes',ja:'にんにょう',kun:'あし'},
+  {n:11,c:'入',s:2,en:'enter',ru:'входить',de:'eingehen',fr:'entrer',ja:'いる',kun:'いる'},
+  {n:12,c:'八',s:2,en:'eight',ru:'восемь',de:'acht',fr:'huit',ja:'はち',kun:'やっつ'},
+  {n:13,c:'冂',s:2,en:'wide',ru:'широкий',de:'weit',fr:'large',ja:'まきがまえ',kun:'けいがまえ'},
+  {n:14,c:'冖',s:2,en:'cover',ru:'покрывать',de:'bedecken',fr:'couvrir',ja:'わかんむり',kun:'なべぶた'},
+  {n:15,c:'冫',s:2,en:'ice',ru:'лёд',de:'Eis',fr:'glace',ja:'にすい',kun:'こおり'},
+  {n:16,c:'几',s:2,en:'table',ru:'стол',de:'Tisch',fr:'table',ja:'きにょう',kun:'つくえ'},
+  {n:17,c:'凵',s:2,en:'open box',ru:'открытая коробка',de:'offene Box',fr:'boite ouverte',ja:'うけばこ',kun:'うけばこ'},
+  {n:18,c:'刀',s:2,en:'knife',ru:'нож',de:'Messer',fr:'couteau',ja:'かたな',kun:'かたな'},
+  {n:19,c:'力',s:2,en:'power',ru:'сила',de:'Kraft',fr:'force',ja:'ちから',kun:'ちから'},
+  {n:20,c:'勹',s:2,en:'wrap',ru:'обёртка',de:'Hülle',fr:'enveloppe',ja:'つつみがまえ',kun:'つつみ'},
+  {n:21,c:'匕',s:2,en:'spoon',ru:'ложка',de:'Löffel',fr:'cuiller',ja:'さじ',kun:'さじ'},
+  {n:22,c:'匚',s:2,en:'box',ru:'коробка',de:'Kiste',fr:'boîte',ja:'はこがまえ',kun:'はこ'},
+  {n:23,c:'匸',s:2,en:'hiding',ru:'прятать',de:'verbergen',fr:'cacher',ja:'かくしがまえ',kun:'かくす'},
+  {n:24,c:'十',s:2,en:'ten',ru:'десять',de:'zehn',fr:'dix',ja:'じゅう',kun:'とお'},
+  {n:25,c:'卜',s:2,en:'divination',ru:'гадание',de:'Divination',fr:'divination',ja:'ぼく',kun:'うらない'},
+  {n:26,c:'卩',s:2,en:'seal',ru:'печать',de:'Siegel',fr:'sceau',ja:'ふしづくり',kun:'ふし'},
+  {n:27,c:'厂',s:2,en:'cliff',ru:'утёс',de:'Felswand',fr:'falaise',ja:'がんだれ',kun:'きし'},
+  {n:28,c:'厶',s:2,en:'private',ru:'частный',de:'privat',fr:'privé',ja:'む',kun:'わたくし'},
+  {n:29,c:'又',s:2,en:'again',ru:'снова',de:'wieder',fr:'encore',ja:'また',kun:'また'},
+  // 3 strokes
+  {n:30,c:'口',s:3,en:'mouth',ru:'рот',de:'Mund',fr:'bouche',ja:'くち',kun:'くち'},
+  {n:31,c:'囗',s:3,en:'enclosure',ru:'ограждение',de:'Einzäunung',fr:'enclos',ja:'くにがまえ',kun:'かこい'},
+  {n:32,c:'土',s:3,en:'earth',ru:'земля',de:'Erde',fr:'terre',ja:'つち',kun:'つち'},
+  {n:33,c:'士',s:3,en:'scholar',ru:'учёный',de:'Gelehrter',fr:'lettré',ja:'さむらい',kun:'さむらい'},
+  {n:34,c:'夂',s:3,en:'go',ru:'идти',de:'gehen',fr:'aller',ja:'ふゆがしら',kun:'おくれる'},
+  {n:35,c:'夊',s:3,en:'walk slowly',ru:'идти медленно',de:'langsam gehen',fr:'aller lentement',ja:'すいにょう',kun:'ゆっくり'},
+  {n:36,c:'夕',s:3,en:'evening',ru:'вечер',de:'Abend',fr:'soir',ja:'ゆうべ',kun:'ゆう'},
+  {n:37,c:'大',s:3,en:'big',ru:'большой',de:'groß',fr:'grand',ja:'だい',kun:'おおきい'},
+  {n:38,c:'女',s:3,en:'woman',ru:'женщина',de:'Frau',fr:'femme',ja:'おんな',kun:'おんな'},
+  {n:39,c:'子',s:3,en:'child',ru:'ребёнок',de:'Kind',fr:'enfant',ja:'こ',kun:'こ'},
+  {n:40,c:'宀',s:3,en:'roof',ru:'крыша',de:'Dach',fr:'toit',ja:'うかんむり',kun:'やね'},
+  {n:41,c:'寸',s:3,en:'inch',ru:'дюйм',de:'Zoll',fr:'pouce',ja:'すん',kun:'すこし'},
+  {n:42,c:'小',s:3,en:'small',ru:'маленький',de:'klein',fr:'petit',ja:'しょう',kun:'ちいさい'},
+  {n:43,c:'尢',s:3,en:'lame',ru:'хромой',de:'lahm',fr:'boiteux',ja:'まげあし',kun:'まげ'},
+  {n:44,c:'尸',s:3,en:'corpse',ru:'труп',de:'Leichnam',fr:'cadavre',ja:'しかばね',kun:'かたち'},
+  {n:45,c:'屮',s:3,en:'sprout',ru:'росток',de:'Keim',fr:'bourgeon',ja:'てつ',kun:'めがでる'},
+  {n:46,c:'山',s:3,en:'mountain',ru:'гора',de:'Berg',fr:'montagne',ja:'やま',kun:'やま'},
+  {n:47,c:'巛',s:3,en:'river',ru:'река',de:'Fluss',fr:'rivière',ja:'まがりがわ',kun:'かわ'},
+  {n:48,c:'工',s:3,en:'work',ru:'работа',de:'Arbeit',fr:'travail',ja:'たくみ',kun:'たくみ'},
+  {n:49,c:'己',s:3,en:'self',ru:'сам',de:'sich',fr:'soi-même',ja:'おのれ',kun:'おのれ'},
+  {n:50,c:'巾',s:3,en:'cloth',ru:'ткань',de:'Tuch',fr:'tissu',ja:'はば',kun:'ぬの'},
+  {n:51,c:'干',s:3,en:'dry',ru:'сухой',de:'trocken',fr:'sec',ja:'ほす',kun:'かわかす'},
+  {n:52,c:'幺',s:3,en:'tiny',ru:'крошечный',de:'winzig',fr:'minuscule',ja:'よう',kun:'いとがしら'},
+  {n:53,c:'广',s:3,en:'shelter',ru:'укрытие',de:'Unterstand',fr:'abri',ja:'まだれ',kun:'のき'},
+  {n:54,c:'廴',s:3,en:'stride',ru:'шагать',de:'schreiten',fr:'enjamber',ja:'えんにょう',kun:'のばす'},
+  {n:55,c:'廾',s:3,en:'two hands',ru:'две руки',de:'zwei Hände',fr:'deux mains',ja:'にじゅうあし',kun:'こまぬき'},
+  {n:56,c:'弋',s:3,en:'ceremony',ru:'обряд',de:'Zeremonie',fr:'cérémonie',ja:'よく',kun:'とめる'},
+  {n:57,c:'弓',s:3,en:'bow',ru:'лук',de:'Bogen',fr:'arc',ja:'ゆみ',kun:'ゆみ'},
+  {n:58,c:'彐',s:3,en:'snout',ru:'рыло',de:'Schnauze',fr:'museau',ja:'けいがしら',kun:'くちばし'},
+  {n:59,c:'彡',s:3,en:'bristle',ru:'щетина',de:'Borste',fr:'poil',ja:'さんづくり',kun:'かみのけ'},
+  {n:60,c:'彳',s:3,en:'step',ru:'шаг',de:'Schritt',fr:'pas',ja:'ぎょうにんべん',kun:'ゆく'},
+  // 4 strokes
+  {n:61,c:'心',s:4,en:'heart',ru:'сердце',de:'Herz',fr:'cœur',ja:'こころ',kun:'こころ'},
+  {n:62,c:'戈',s:4,en:'halberd',ru:'алебарда',de:'Hellebarde',fr:'hallebarde',ja:'ほこ',kun:'ほこ'},
+  {n:63,c:'戶',s:4,en:'door',ru:'дверь',de:'Tür',fr:'porte',ja:'とびら',kun:'と'},
+  {n:64,c:'手',s:4,en:'hand',ru:'рука',de:'Hand',fr:'main',ja:'て',kun:'て'},
+  {n:65,c:'支',s:4,en:'branch',ru:'ветвь',de:'Zweig',fr:'branche',ja:'し',kun:'えだ'},
+  {n:66,c:'攴',s:4,en:'strike',ru:'удар',de:'Schlag',fr:'frapper',ja:'ぼくにょう',kun:'たたく'},
+  {n:67,c:'文',s:4,en:'script',ru:'письмо',de:'Schrift',fr:'écriture',ja:'ぶん',kun:'ふみ'},
+  {n:68,c:'斗',s:4,en:'dipper',ru:'ковш',de:'Schöpfkelle',fr:'louche',ja:'とます',kun:'ます'},
+  {n:69,c:'斤',s:4,en:'axe',ru:'топор',de:'Axt',fr:'hache',ja:'おの',kun:'おの'},
+  {n:70,c:'方',s:4,en:'square',ru:'квадрат',de:'Viereck',fr:'carré',ja:'ほう',kun:'かた'},
+  {n:71,c:'无',s:4,en:'not',ru:'нет',de:'nicht',fr:'non',ja:'む',kun:'ない'},
+  {n:72,c:'日',s:4,en:'sun',ru:'солнце',de:'Sonne',fr:'soleil',ja:'ひ',kun:'ひ'},
+  {n:73,c:'曰',s:4,en:'say',ru:'говорить',de:'sagen',fr:'dire',ja:'いわく',kun:'いう'},
+  {n:74,c:'月',s:4,en:'moon',ru:'луна',de:'Mond',fr:'lune',ja:'つき',kun:'つき'},
+  {n:75,c:'木',s:4,en:'tree',ru:'дерево',de:'Baum',fr:'arbre',ja:'き',kun:'き'},
+  {n:76,c:'欠',s:4,en:'lack',ru:'нехватка',de:'Mangel',fr:'manque',ja:'あくび',kun:'あくび'},
+  {n:77,c:'止',s:4,en:'stop',ru:'стоп',de:'stopp',fr:'arrêt',ja:'とまる',kun:'とまる'},
+  {n:78,c:'歹',s:4,en:'death',ru:'смерть',de:'Tod',fr:'mort',ja:'がつへん',kun:'かばね'},
+  {n:79,c:'殳',s:4,en:'weapon',ru:'оружие',de:'Waffe',fr:'arme',ja:'るまた',kun:'ほこ'},
+  {n:80,c:'毋',s:4,en:'not',ru:'не',de:'nicht',fr:'ne pas',ja:'はは',kun:'なかれ'},
+  {n:81,c:'比',s:4,en:'compare',ru:'сравнивать',de:'vergleichen',fr:'comparer',ja:'くらべる',kun:'くらべる'},
+  {n:82,c:'毛',s:4,en:'fur',ru:'шерсть',de:'Pelz',fr:'fourrure',ja:'け',kun:'け'},
+  {n:83,c:'氏',s:4,en:'clan',ru:'клан',de:'Klan',fr:'clan',ja:'うじ',kun:'うじ'},
+  {n:84,c:'气',s:4,en:'steam',ru:'пар',de:'Dampf',fr:'vapeur',ja:'きがまえ',kun:'き'},
+  {n:85,c:'水',s:4,en:'water',ru:'вода',de:'Wasser',fr:'eau',ja:'みず',kun:'みず'},
+  {n:86,c:'火',s:4,en:'fire',ru:'огонь',de:'Feuer',fr:'feu',ja:'ひ',kun:'ひ'},
+  {n:87,c:'爪',s:4,en:'claw',ru:'коготь',de:'Klaue',fr:'griffe',ja:'つめ',kun:'つめ'},
+  {n:88,c:'父',s:4,en:'father',ru:'отец',de:'Vater',fr:'père',ja:'ちち',kun:'ちち'},
+  {n:89,c:'爻',s:4,en:'lines',ru:'черты',de:'Linien',fr:'lignes',ja:'こうがしら',kun:'まじわる'},
+  {n:90,c:'爿',s:4,en:'half wood',ru:'полудерево',de:'halbes Holz',fr:'demi-bois',ja:'しょうへん',kun:'ふせぎ'},
+  {n:91,c:'片',s:4,en:'slice',ru:'ломоть',de:'Scheibe',fr:'tranche',ja:'かたへん',kun:'ひら'},
+  {n:92,c:'牙',s:4,en:'fang',ru:'клык',de:'Zahn',fr:'croc',ja:'きば',kun:'きば'},
+  {n:93,c:'牛',s:4,en:'cow',ru:'корова',de:'Kuh',fr:'vache',ja:'うし',kun:'うし'},
+  {n:94,c:'犬',s:4,en:'dog',ru:'собака',de:'Hund',fr:'chien',ja:'いぬ',kun:'いぬ'},
+  // 5 strokes
+  {n:95,c:'玄',s:5,en:'dark',ru:'тёмный',de:'dunkel',fr:'sombre',ja:'くろ',kun:'げん'},
+  {n:96,c:'玉',s:5,en:'jade',ru:'нефрит',de:'Jade',fr:'jade',ja:'たま',kun:'たま'},
+  {n:97,c:'瓜',s:5,en:'melon',ru:'дыня',de:'Melone',fr:'melon',ja:'うり',kun:'うり'},
+  {n:98,c:'瓦',s:5,en:'tile',ru:'черепица',de:'Dachziegel',fr:'tuile',ja:'かわら',kun:'かわら'},
+  {n:99,c:'甘',s:5,en:'sweet',ru:'сладкий',de:'süß',fr:'doux',ja:'あまい',kun:'あまい'},
+  {n:100,c:'生',s:5,en:'life',ru:'жизнь',de:'Leben',fr:'vie',ja:'いきる',kun:'うまれる'},
+  {n:101,c:'用',s:5,en:'use',ru:'использовать',de:'benutzen',fr:'utiliser',ja:'もちいる',kun:'もちいる'},
+  {n:102,c:'田',s:5,en:'field',ru:'поле',de:'Feld',fr:'champ',ja:'た',kun:'た'},
+  {n:103,c:'疋',s:5,en:'bolt',ru:'кипа',de:'Ballen',fr:'ballot',ja:'ひき',kun:'あし'},
+  {n:104,c:'疒',s:5,en:'illness',ru:'болезнь',de:'Krankheit',fr:'maladie',ja:'やまいだれ',kun:'やまい'},
+  {n:105,c:'癶',s:5,en:'footsteps',ru:'следы',de:'Schritte',fr:'traces',ja:'はつがしら',kun:'あし'},
+  {n:106,c:'白',s:5,en:'white',ru:'белый',de:'weiß',fr:'blanc',ja:'しろ',kun:'しろ'},
+  {n:107,c:'皮',s:5,en:'skin',ru:'кожа',de:'Haut',fr:'peau',ja:'けがわ',kun:'かわ'},
+  {n:108,c:'皿',s:5,en:'dish',ru:'блюдо',de:'Teller',fr:'assiette',ja:'さら',kun:'さら'},
+  {n:109,c:'目',s:5,en:'eye',ru:'глаз',de:'Auge',fr:'œil',ja:'め',kun:'め'},
+  {n:110,c:'矛',s:5,en:'spear',ru:'копьё',de:'Speer',fr:'lance',ja:'ほこ',kun:'ほこ'},
+  {n:111,c:'矢',s:5,en:'arrow',ru:'стрела',de:'Pfeil',fr:'flèche',ja:'や',kun:'や'},
+  {n:112,c:'石',s:5,en:'stone',ru:'камень',de:'Stein',fr:'pierre',ja:'いし',kun:'いし'},
+  {n:113,c:'示',s:5,en:'spirit',ru:'дух',de:'Geist',fr:'esprit',ja:'しめす',kun:'しめす'},
+  {n:114,c:'禸',s:5,en:'track',ru:'след',de:'Spur',fr:'piste',ja:'ぐうのあし',kun:'あし'},
+  {n:115,c:'禾',s:5,en:'grain',ru:'зерно',de:'Getreide',fr:'grain',ja:'のぎ',kun:'いね'},
+  {n:116,c:'穴',s:5,en:'cave',ru:'пещера',de:'Höhle',fr:'caverne',ja:'あなかんむり',kun:'あな'},
+  {n:117,c:'立',s:5,en:'stand',ru:'стоять',de:'stehen',fr:'se tenir',ja:'たつ',kun:'たつ'},
+  // 6 strokes
+  {n:118,c:'竹',s:6,en:'bamboo',ru:'бамбук',de:'Bambus',fr:'bambou',ja:'たけ',kun:'たけ'},
+  {n:119,c:'米',s:6,en:'rice',ru:'рис',de:'Reis',fr:'riz',ja:'こめ',kun:'こめ'},
+  {n:120,c:'糸',s:6,en:'thread',ru:'нить',de:'Faden',fr:'fil',ja:'いと',kun:'いと'},
+  {n:121,c:'缶',s:6,en:'jar',ru:'кувшин',de:'Krug',fr:'cruche',ja:'ほとぎ',kun:'かん'},
+  {n:122,c:'网',s:6,en:'net',ru:'сеть',de:'Netz',fr:'filet',ja:'あみがしら',kun:'あみ'},
+  {n:123,c:'羊',s:6,en:'sheep',ru:'овца',de:'Schaf',fr:'mouton',ja:'ひつじ',kun:'ひつじ'},
+  {n:124,c:'羽',s:6,en:'feather',ru:'перо',de:'Feder',fr:'plume',ja:'は',kun:'は'},
+  {n:125,c:'老',s:6,en:'old',ru:'старый',de:'alt',fr:'vieux',ja:'おいる',kun:'おいる'},
+  {n:126,c:'而',s:6,en:'and',ru:'и',de:'und',fr:'et',ja:'しかして',kun:'しかも'},
+  {n:127,c:'耒',s:6,en:'plow',ru:'плуг',de:'Pflug',fr:'charrue',ja:'らいすき',kun:'すき'},
+  {n:128,c:'耳',s:6,en:'ear',ru:'ухо',de:'Ohr',fr:'oreille',ja:'みみ',kun:'みみ'},
+  {n:129,c:'聿',s:6,en:'brush',ru:'кисть',de:'Pinsel',fr:'pinceau',ja:'ふで',kun:'ふで'},
+  {n:130,c:'肉',s:6,en:'meat',ru:'мясо',de:'Fleisch',fr:'viande',ja:'にく',kun:'にく'},
+  {n:131,c:'臣',s:6,en:'minister',ru:'министр',de:'Minister',fr:'ministre',ja:'しん',kun:'おみ'},
+  {n:132,c:'自',s:6,en:'self',ru:'сам',de:'selbst',fr:'soi',ja:'みずから',kun:'みずから'},
+  {n:133,c:'至',s:6,en:'arrive',ru:'прибыть',de:'ankommen',fr:'arriver',ja:'いたる',kun:'いたる'},
+  {n:134,c:'臼',s:6,en:'mortar',ru:'ступа',de:'Mörser',fr:'mortier',ja:'うす',kun:'うす'},
+  {n:135,c:'舌',s:6,en:'tongue',ru:'язык',de:'Zunge',fr:'langue',ja:'した',kun:'した'},
+  {n:136,c:'舛',s:6,en:'oppose',ru:'противоположный',de:'entgegengesetzt',fr:'opposé',ja:'もとる',kun:'まいあし'},
+  {n:137,c:'舟',s:6,en:'boat',ru:'лодка',de:'Boot',fr:'bateau',ja:'ふね',kun:'ふね'},
+  {n:138,c:'艮',s:6,en:'stopping',ru:'остановка',de:'Stopp',fr:'arrêt',ja:'うしとら',kun:'こんにょう'},
+  {n:139,c:'色',s:6,en:'color',ru:'цвет',de:'Farbe',fr:'couleur',ja:'いろ',kun:'いろ'},
+  {n:140,c:'艸',s:6,en:'grass',ru:'трава',de:'Gras',fr:'herbe',ja:'くさかんむり',kun:'くさ'},
+  {n:141,c:'虍',s:6,en:'tiger',ru:'тигр',de:'Tiger',fr:'tigre',ja:'とらがしら',kun:'とら'},
+  {n:142,c:'虫',s:6,en:'insect',ru:'насекомое',de:'Insekt',fr:'insecte',ja:'むし',kun:'むし'},
+  {n:143,c:'血',s:6,en:'blood',ru:'кровь',de:'Blut',fr:'sang',ja:'ち',kun:'ち'},
+  {n:144,c:'行',s:6,en:'walk',ru:'ходить',de:'gehen',fr:'marcher',ja:'ゆく',kun:'いく'},
+  {n:145,c:'衣',s:6,en:'clothes',ru:'одежда',de:'Kleidung',fr:'vêtements',ja:'ころも',kun:'ころも'},
+  {n:146,c:'西',s:6,en:'west',ru:'запад',de:'West',fr:'ouest',ja:'にし',kun:'にし'},
+  // 7 strokes
+  {n:147,c:'見',s:7,en:'see',ru:'видеть',de:'sehen',fr:'voir',ja:'みる',kun:'みる'},
+  {n:148,c:'角',s:7,en:'horn',ru:'рог',de:'Horn',fr:'corne',ja:'つの',kun:'かど'},
+  {n:149,c:'言',s:7,en:'speech',ru:'речь',de:'Sprache',fr:'parole',ja:'いう',kun:'ことば'},
+  {n:150,c:'谷',s:7,en:'valley',ru:'долина',de:'Tal',fr:'vallée',ja:'たに',kun:'たに'},
+  {n:151,c:'豆',s:7,en:'bean',ru:'боб',de:'Bohne',fr:'haricot',ja:'まめ',kun:'まめ'},
+  {n:152,c:'豕',s:7,en:'pig',ru:'свинья',de:'Schwein',fr:'porc',ja:'いのこ',kun:'いのこ'},
+  {n:153,c:'豸',s:7,en:'badger',ru:'барсук',de:'Dachs',fr:'blaireau',ja:'むじな',kun:'えものへん'},
+  {n:154,c:'貝',s:7,en:'shell',ru:'ракушка',de:'Muschel',fr:'coquille',ja:'かい',kun:'かい'},
+  {n:155,c:'赤',s:7,en:'red',ru:'красный',de:'rot',fr:'rouge',ja:'あか',kun:'あか'},
+  {n:156,c:'走',s:7,en:'run',ru:'бежать',de:'rennen',fr:'courir',ja:'はしる',kun:'はしる'},
+  {n:157,c:'足',s:7,en:'foot',ru:'нога (стопа)',de:'Fuß',fr:'pied',ja:'あし',kun:'あし'},
+  {n:158,c:'身',s:7,en:'body',ru:'тело',de:'Körper',fr:'corps',ja:'み',kun:'み'},
+  {n:159,c:'車',s:7,en:'cart',ru:'телега',de:'Wagen',fr:'charrette',ja:'くるま',kun:'くるま'},
+  {n:160,c:'辛',s:7,en:'bitter',ru:'горький',de:'bitter',fr:'amer',ja:'からい',kun:'つらい'},
+  {n:161,c:'辰',s:7,en:'morning',ru:'утро',de:'Morgen',fr:'matin',ja:'たつ',kun:'ときどき'},
+  {n:162,c:'辶',s:7,en:'walk',ru:'идти',de:'gehen',fr:'marcher',ja:'しんにょう',kun:'ゆく'},
+  {n:163,c:'邑',s:7,en:'city',ru:'город',de:'Stadt',fr:'ville',ja:'むら',kun:'くに'},
+  {n:164,c:'酉',s:7,en:'wine',ru:'вино',de:'Wein',fr:'vin',ja:'とり',kun:'さけ'},
+  {n:165,c:'釆',s:7,en:'distinguish',ru:'различать',de:'unterscheiden',fr:'distinguer',ja:'のごめ',kun:'のごめ'},
+  {n:166,c:'里',s:7,en:'village',ru:'деревня',de:'Dorf',fr:'village',ja:'さと',kun:'さと'},
+  // 8 strokes
+  {n:167,c:'金',s:8,en:'gold',ru:'золото',de:'Gold',fr:'or',ja:'かね',kun:'かね'},
+  {n:168,c:'長',s:8,en:'long',ru:'длинный',de:'lang',fr:'long',ja:'ながい',kun:'ながい'},
+  {n:169,c:'門',s:8,en:'gate',ru:'ворота',de:'Tor',fr:'porte',ja:'かど',kun:'もん'},
+  {n:170,c:'阜',s:8,en:'mound',ru:'курган',de:'Hügel',fr:'monticule',ja:'おか',kun:'こざと'},
+  {n:171,c:'隶',s:8,en:'slave',ru:'раб',de:'Sklave',fr:'esclave',ja:'れい',kun:'したがう'},
+  {n:172,c:'隹',s:8,en:'bird',ru:'птица',de:'Vogel',fr:'oiseau',ja:'ふるとり',kun:'とり'},
+  {n:173,c:'雨',s:8,en:'rain',ru:'дождь',de:'Regen',fr:'pluie',ja:'あめ',kun:'あめ'},
+  {n:174,c:'青',s:8,en:'blue',ru:'синий',de:'blau',fr:'bleu',ja:'あお',kun:'あお'},
+  {n:175,c:'非',s:8,en:'wrong',ru:'неправильный',de:'falsch',fr:'faux',ja:'あらず',kun:'そうでない'},
+  // 9 strokes
+  {n:176,c:'面',s:9,en:'face',ru:'лицо',de:'Gesicht',fr:'visage',ja:'おも',kun:'かお'},
+  {n:177,c:'革',s:9,en:'leather',ru:'кожа (изделие)',de:'Leder',fr:'cuir',ja:'かわ',kun:'かわ'},
+  {n:178,c:'韋',s:9,en:'soft leather',ru:'мягкая кожа',de:'weiches Leder',fr:'cuir souple',ja:'なめしがわ',kun:'なめしがわ'},
+  {n:179,c:'韭',s:9,en:'leek',ru:'лук-порей',de:'Lauch',fr:'poireau',ja:'にら',kun:'にら'},
+  {n:180,c:'音',s:9,en:'sound',ru:'звук',de:'Klang',fr:'son',ja:'おと',kun:'おと'},
+  {n:181,c:'頁',s:9,en:'page',ru:'страница',de:'Seite',fr:'page',ja:'おおがい',kun:'ページ'},
+  {n:182,c:'風',s:9,en:'wind',ru:'ветер',de:'Wind',fr:'vent',ja:'かぜ',kun:'かぜ'},
+  {n:183,c:'飛',s:9,en:'fly',ru:'летать',de:'fliegen',fr:'voler',ja:'とぶ',kun:'とぶ'},
+  {n:184,c:'食',s:9,en:'eat',ru:'есть',de:'essen',fr:'manger',ja:'しょく',kun:'たべる'},
+  {n:185,c:'首',s:9,en:'head',ru:'голова',de:'Kopf',fr:'tête',ja:'くび',kun:'くび'},
+  {n:186,c:'香',s:9,en:'fragrant',ru:'ароматный',de:'duftend',fr:'parfumé',ja:'かおり',kun:'かおり'},
+  // 10 strokes
+  {n:187,c:'馬',s:10,en:'horse',ru:'лошадь',de:'Pferd',fr:'cheval',ja:'うま',kun:'うま'},
+  {n:188,c:'骨',s:10,en:'bone',ru:'кость',de:'Knochen',fr:'os',ja:'ほね',kun:'ほね'},
+  {n:189,c:'高',s:10,en:'tall',ru:'высокий',de:'hoch',fr:'haut',ja:'たかい',kun:'たかい'},
+  {n:190,c:'髟',s:10,en:'hair',ru:'волосы',de:'Haar',fr:'cheveux',ja:'かみがしら',kun:'かみ'},
+  {n:191,c:'鬥',s:10,en:'fight',ru:'драться',de:'kämpfen',fr:'se battre',ja:'たたかい',kun:'たたかう'},
+  {n:192,c:'鬯',s:10,en:'herb',ru:'трава',de:'Kraut',fr:'herbe',ja:'ちょう',kun:'においざけ'},
+  {n:193,c:'鬲',s:10,en:'cauldron',ru:'котёл',de:'Kessel',fr:'chaudron',ja:'かなえ',kun:'かなえ'},
+  {n:194,c:'鬼',s:10,en:'ghost',ru:'призрак',de:'Geist',fr:'fantôme',ja:'おに',kun:'おに'},
+  // 11 strokes
+  {n:195,c:'魚',s:11,en:'fish',ru:'рыба',de:'Fisch',fr:'poisson',ja:'さかな',kun:'さかな'},
+  {n:196,c:'鳥',s:11,en:'bird',ru:'птица',de:'Vogel',fr:'oiseau',ja:'とり',kun:'とり'},
+  {n:197,c:'鹵',s:11,en:'salt',ru:'соль',de:'Salz',fr:'sel',ja:'しお',kun:'しおち'},
+  {n:198,c:'鹿',s:11,en:'deer',ru:'олень',de:'Hirsch',fr:'cerf',ja:'しか',kun:'しか'},
+  {n:199,c:'麦',s:11,en:'wheat',ru:'пшеница',de:'Weizen',fr:'blé',ja:'むぎ',kun:'むぎ'},
+  {n:200,c:'麻',s:11,en:'hemp',ru:'конопля',de:'Hanf',fr:'chanvre',ja:'あさ',kun:'あさ'},
+  // 12 strokes
+  {n:201,c:'黄',s:12,en:'yellow',ru:'жёлтый',de:'gelb',fr:'jaune',ja:'き',kun:'きいろ'},
+  {n:202,c:'黍',s:12,en:'millet',ru:'просо',de:'Hirse',fr:'millet',ja:'きび',kun:'きび'},
+  {n:203,c:'黒',s:12,en:'black',ru:'чёрный',de:'schwarz',fr:'noir',ja:'くろ',kun:'くろ'},
+  {n:204,c:'黹',s:12,en:'embroidery',ru:'вышивка',de:'Stickerei',fr:'broderie',ja:'ふつ',kun:'ぬい'},
+  // 13 strokes
+  {n:205,c:'黽',s:13,en:'frog',ru:'лягушка',de:'Frosch',fr:'grenouille',ja:'かえる',kun:'かえる'},
+  {n:206,c:'鼎',s:13,en:'tripod',ru:'треножник',de:'Dreifuß',fr:'trépied',ja:'かなえ',kun:'かなえ'},
+  {n:207,c:'鼓',s:13,en:'drum',ru:'барабан',de:'Trommel',fr:'tambour',ja:'つづみ',kun:'つづみ'},
+  {n:208,c:'鼠',s:13,en:'rat',ru:'крыса',de:'Ratte',fr:'rat',ja:'ねずみ',kun:'ねずみ'},
+  // 14 strokes
+  {n:209,c:'鼻',s:14,en:'nose',ru:'нос',de:'Nase',fr:'nez',ja:'はな',kun:'はな'},
+  {n:210,c:'齊',s:14,en:'even',ru:'ровный',de:'gleich',fr:'égal',ja:'ひとしい',kun:'そろう'},
+  // 15-17 strokes
+  {n:211,c:'齒',s:15,en:'teeth',ru:'зубы',de:'Zähne',fr:'dents',ja:'は',kun:'は'},
+  {n:212,c:'龍',s:16,en:'dragon',ru:'дракон',de:'Drachen',fr:'dragon',ja:'たつ',kun:'りゅう'},
+  {n:213,c:'龜',s:16,en:'turtle',ru:'черепаха',de:'Schildkröte',fr:'tortue',ja:'かめ',kun:'かめ'},
+  {n:214,c:'龠',s:17,en:'flute',ru:'флейта',de:'Flöte',fr:'flûte',ja:'やく',kun:'ふえ'},
+];
+
+// ═══════════════════════════════════════
+//  APP STATE
+// ═══════════════════════════════════════
+let state = {
+  view: 'grid',
+  lang: 'en',
+  filterStrokes: 0, // 0 = all
+  currentIndex: 0,
+  brushSize: 3,
+  drawMode: 'free', // 'free' or 'over'
+  isDrawing: false,
+  lastX: 0,
+  lastY: 0,
+  touchTimer: null,
+  touchStart: 0,
+  svgCache: {},
+};
+
+// ═══════════════════════════════════════
+//  I18N
+// ═══════════════════════════════════════
+const I18N = {
+  en: {
+    title: '漢字部首', back: 'List', strokes: 'Strokes:', all: 'All',
+    stroke: 'stroke', strokes_pl: 'strokes',
+    hint_free: 'Tap briefly to clear · Swipe to navigate',
+    hint_over: 'Draw over the guide · Tap briefly to clear',
+    ref: 'Reference',
+    meanings: 'Meanings', free: '✎ Free', trace: '◎ Trace',
+    loading: 'Loading stroke order…',
+    radical: 'Radical',
+  },
+  ru: {
+    title: '漢字部首', back: 'Список', strokes: 'Черт:', all: 'Все',
+    stroke: 'черта', strokes_pl: 'черты/черт',
+    hint_free: 'Коротко нажми — очистить · Свайп для навигации',
+    hint_over: 'Рисуй поверх образца · Коротко нажми — очистить',
+    ref: 'Образец',
+    meanings: 'Значения', free: '✎ Свободно', trace: '◎ Обводка',
+    loading: 'Загрузка порядка черт…',
+    radical: 'Радикал',
+  },
+  de: {
+    title: '漢字部首', back: 'Liste', strokes: 'Striche:', all: 'Alle',
+    stroke: 'Strich', strokes_pl: 'Striche',
+    hint_free: 'Kurz tippen zum Löschen · Wischen zum Navigieren',
+    hint_over: 'Über Vorlage zeichnen · Kurz tippen zum Löschen',
+    ref: 'Vorlage',
+    meanings: 'Bedeutungen', free: '✎ Frei', trace: '◎ Nachfahren',
+    loading: 'Strichreihenfolge lädt…',
+    radical: 'Radikal',
+  },
+  fr: {
+    title: '漢字部首', back: 'Liste', strokes: 'Traits:', all: 'Tous',
+    stroke: 'trait', strokes_pl: 'traits',
+    hint_free: 'Tapez brièvement pour effacer · Glisser pour naviguer',
+    hint_over: 'Dessiner sur le modèle · Tapez brièvement pour effacer',
+    ref: 'Référence',
+    meanings: 'Significations', free: '✎ Libre', trace: '◎ Calque',
+    loading: 'Chargement de l\'ordre des traits…',
+    radical: 'Radical',
+  },
+  ja: {
+    title: '漢字部首', back: '一覧', strokes: '画数:', all: '全',
+    stroke: '画', strokes_pl: '画',
+    hint_free: '短く押して消す・スワイプで移動',
+    hint_over: 'ガイドの上に書く・短く押して消す',
+    ref: '見本',
+    meanings: '意味', free: '✎ 自由', trace: '◎ なぞり',
+    loading: '筆順読み込み中…',
+    radical: '部首',
+  },
+};
+
+function t(key) { return (I18N[state.lang] || I18N.en)[key] || key; }
+
+// ═══════════════════════════════════════
+//  DOM REFS
+// ═══════════════════════════════════════
+const $ = id => document.getElementById(id);
+const gridView = $('grid-view');
+const studyView = $('study-view');
+const radicalGrid = $('radical-grid');
+const strokeFilter = $('stroke-filter');
+const langSelect = $('lang-select');
+const toggleViewBtn = $('toggle-view-btn');
+const backBtn = $('back-btn');
+const prevBtn = $('prev-btn');
+const nextBtn = $('next-btn');
+const infoChar = $('info-char');
+const infoMeaning = $('info-meaning');
+const infoMeta = $('info-meta');
+const meaningsRow = $('meanings-row');
+const drawCanvas = $('draw-canvas');
+const canvasGridEl = $('canvas-grid');
+const guideChar = $('guide-char');
+const progressFill = $('progress-fill');
+const strokeOrderFallback = $('stroke-order-fallback');
+const strokeOrderSvg = $('stroke-order-svg');
+const strokeLegend = $('stroke-legend');
+const refSection = $('ref-section');
+const canvasSection = $('canvas-section');
+const bThin = $('b-thin');
+const bMedium = $('b-medium');
+const bThick = $('b-thick');
+const modeFree = $('mode-free');
+const modeOver = $('mode-over');
+
+let ctx = null;
+
+// ═══════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════
+function init() {
+  ctx = drawCanvas.getContext('2d');
+  buildStrokeFilter();
+  renderGrid();
+  setupEventListeners();
+  updateLang();
+
+  // ResizeObserver: fires after real layout, works on all mobile browsers
+  const ro = new ResizeObserver(() => {
+    if (state.view === 'study') resizeCanvas();
+  });
+  ro.observe(canvasSection);
+}
+
+// ═══════════════════════════════════════
+//  STROKE FILTER
+// ═══════════════════════════════════════
+function buildStrokeFilter() {
+  const lang = state.lang;
+  strokeFilter.innerHTML = '';
+  const allBtn = document.createElement('button');
+  allBtn.className = 'sf-btn' + (state.filterStrokes === 0 ? ' active' : '');
+  allBtn.textContent = t('all');
+  allBtn.onclick = () => { state.filterStrokes = 0; buildStrokeFilter(); renderGrid(); };
+  strokeFilter.appendChild(allBtn);
+
+  const counts = [...new Set(RADICALS.map(r=>r.s))].sort((a,b)=>a-b);
+  counts.forEach(n => {
+    const btn = document.createElement('button');
+    btn.className = 'sf-btn' + (state.filterStrokes === n ? ' active' : '');
+    btn.textContent = n;
+    btn.onclick = () => { state.filterStrokes = n; buildStrokeFilter(); renderGrid(); };
+    strokeFilter.appendChild(btn);
+  });
+}
+
+// ═══════════════════════════════════════
+//  GRID
+// ═══════════════════════════════════════
+function getFilteredRadicals() {
+  if (state.filterStrokes === 0) return RADICALS;
+  return RADICALS.filter(r => r.s === state.filterStrokes);
+}
+
+function renderGrid() {
+  const filtered = getFilteredRadicals();
+  radicalGrid.innerHTML = '';
+  filtered.forEach((r, i) => {
+    const card = document.createElement('div');
+    card.className = 'radical-card';
+    card.innerHTML = `
+      <div class="rc-char">${r.c}</div>
+      <div class="rc-num">#${r.n}</div>
+      <div class="rc-meaning">${getMeaning(r)}</div>
+      <div class="rc-strokes">${r.s}${t('stroke')[0]}</div>
+    `;
+    card.onclick = () => openStudy(r.n - 1);
+    radicalGrid.appendChild(card);
+  });
+}
+
+function getMeaning(r) {
+  return r[state.lang] || r.en;
+}
+
+// ═══════════════════════════════════════
+//  STUDY VIEW
+// ═══════════════════════════════════════
+function openStudy(globalIndex) {
+  state.currentIndex = globalIndex;
+  state.view = 'study';
+  gridView.classList.add('hidden');
+  studyView.classList.remove('hidden');
+  renderStudy();
+}
+
+function renderStudy() {
+  const r = RADICALS[state.currentIndex];
+  const meaning = getMeaning(r);
+
+  infoChar.textContent = r.c;
+  infoMeaning.textContent = meaning;
+  infoMeta.textContent = `#${r.n} · ${r.s} ${r.s === 1 ? t('stroke') : t('strokes_pl')}`;
+
+  progressFill.style.width = ((state.currentIndex + 1) / RADICALS.length * 100) + '%';
+
+  renderMeanings(r);
+  loadStrokeOrder(r);
+  updateGuideChar(r);
+  updateCanvasHint();
+  resizeCanvas();
+  clearCanvas();
+}
+
+function renderMeanings(r) {
+  meaningsRow.innerHTML = '';
+  const langs = ['en','ru','de','fr','ja'];
+  const labels = {en:'EN',ru:'RU',de:'DE',fr:'FR',ja:'JA'};
+  langs.forEach(l => {
+    if (!r[l]) return;
+    const item = document.createElement('div');
+    item.className = 'meaning-item';
+    item.innerHTML = `<span class="meaning-lang">${labels[l]}</span><span class="meaning-text">${r[l]}</span>`;
+    meaningsRow.appendChild(item);
+  });
+}
+
+// ═══════════════════════════════════════
+//  STROKE ORDER (KanjiVG)
+// ═══════════════════════════════════════
+function loadStrokeOrder(r) {
+  strokeOrderFallback.textContent = r.c;
+  strokeOrderFallback.classList.remove('hidden');
+  strokeOrderSvg.classList.add('hidden');
+  strokeLegend.innerHTML = '';
+
+  const codePoint = r.c.codePointAt(0);
+  const hex = codePoint.toString(16).padStart(5, '0');
+  const url = `https://cdn.jsdelivr.net/gh/KanjiVG/kanjivg@master/kanji/${hex}.svg`;
+
+  if (state.svgCache[hex]) {
+    renderKanjiVG(state.svgCache[hex], r);
+    return;
+  }
+
+  fetch(url)
+    .then(res => { if (!res.ok) throw new Error('not found'); return res.text(); })
+    .then(svgText => {
+      state.svgCache[hex] = svgText;
+      renderKanjiVG(svgText, r);
+    })
+    .catch(() => {
+      // Fallback: show big character
+      strokeOrderFallback.classList.remove('hidden');
+      strokeOrderSvg.classList.add('hidden');
+      buildSimpleLegend(r.s);
+    });
+}
+
+function renderKanjiVG(svgText, r) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(svgText, 'image/svg+xml');
+  const origSvg = doc.querySelector('svg');
+  if (!origSvg) { buildSimpleLegend(r.s); return; }
+
+  // Get all stroke paths
+  const paths = origSvg.querySelectorAll('path');
+  if (paths.length === 0) { buildSimpleLegend(r.s); return; }
+
+  // Build our SVG with colored stroke paths
+  const colors = generateStrokeColors(paths.length);
+  let svgContent = '';
+
+  paths.forEach((p, i) => {
+    const d = p.getAttribute('d');
+    if (!d) return;
+    const color = colors[i];
+    svgContent += `<path d="${d}" fill="none" stroke="${color}" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round" opacity="${0.5 + (i / paths.length) * 0.5}"/>`;
+  });
+
+  // Add stroke numbers at start of each path
+  paths.forEach((p, i) => {
+    const d = p.getAttribute('d');
+    if (!d) return;
+    const pos = getPathStart(d);
+    if (!pos) return;
+    svgContent += `<circle cx="${pos.x}" cy="${pos.y}" r="6" fill="${colors[i]}" opacity="0.9"/>`;
+    svgContent += `<text x="${pos.x}" y="${pos.y + 4}" text-anchor="middle" font-size="7" fill="white" font-weight="bold" font-family="Arial">${i+1}</text>`;
+  });
+
+  strokeOrderSvg.innerHTML = svgContent;
+  strokeOrderSvg.setAttribute('viewBox', origSvg.getAttribute('viewBox') || '0 0 109 109');
+  strokeOrderFallback.classList.add('hidden');
+  strokeOrderSvg.classList.remove('hidden');
+
+  buildColorLegend(paths.length, colors);
+}
+
+function getPathStart(d) {
+  const m = d.match(/[Mm]\s*([\d.+-]+)[,\s]([\d.+-]+)/);
+  if (!m) return null;
+  return { x: parseFloat(m[1]), y: parseFloat(m[2]) };
+}
+
+function generateStrokeColors(n) {
+  const colors = [];
+  for (let i = 0; i < n; i++) {
+    const hue = (i / n) * 280; // blue→red spectrum
+    colors.push(`hsl(${220 + i * (140/Math.max(n-1,1))},70%,40%)`);
+  }
+  return colors;
+}
+
+function buildColorLegend(n, colors) {
+  strokeLegend.innerHTML = '';
+  const max = Math.min(n, 8);
+  for (let i = 0; i < max; i++) {
+    const item = document.createElement('div');
+    item.className = 'stroke-legend-item';
+    const dot = document.createElement('div');
+    dot.className = 'stroke-dot';
+    dot.style.background = colors[i];
+    dot.textContent = i+1;
+    item.appendChild(dot);
+    strokeLegend.appendChild(item);
+  }
+  if (n > 8) {
+    const more = document.createElement('div');
+    more.className = 'stroke-legend-item';
+    more.style.fontSize = '0.65rem';
+    more.style.color = 'rgba(90,64,32,0.5)';
+    more.textContent = `+${n-8} more`;
+    strokeLegend.appendChild(more);
+  }
+}
+
+function buildSimpleLegend(n) {
+  strokeLegend.innerHTML = '';
+  const colors = generateStrokeColors(n);
+  for (let i = 0; i < n; i++) {
+    const item = document.createElement('div');
+    item.className = 'stroke-legend-item';
+    const dot = document.createElement('div');
+    dot.className = 'stroke-dot';
+    dot.style.background = colors[i];
+    dot.textContent = i+1;
+    item.appendChild(dot);
+    strokeLegend.appendChild(item);
+  }
+}
+
+// ═══════════════════════════════════════
+//  CANVAS
+// ═══════════════════════════════════════
+function resizeCanvas() {
+  // setTimeout 0 defers until after WebView finishes layout
+  setTimeout(() => {
+    const w = canvasSection.offsetWidth;
+    const h = canvasSection.offsetHeight;
+    if (!w || !h) return;
+
+    drawCanvas.width = w;
+    drawCanvas.height = h;
+    canvasGridEl.width = w;
+    canvasGridEl.height = h;
+
+    const size = Math.round(Math.min(w, h) * 0.45);
+    guideChar.style.fontSize = size + 'px';
+
+    drawGridLines();
+  }, 0);
+}
+
+function drawGridLines() {
+  const gctx = canvasGridEl.getContext('2d');
+  const w = canvasGridEl.width;
+  const h = canvasGridEl.height;
+  gctx.clearRect(0, 0, w, h);
+  gctx.strokeStyle = 'rgba(180,140,80,0.12)';
+  gctx.lineWidth = 1;
+  gctx.setLineDash([4, 4]);
+
+  // Center cross
+  gctx.beginPath();
+  gctx.moveTo(w/2, 0); gctx.lineTo(w/2, h);
+  gctx.moveTo(0, h/2); gctx.lineTo(w, h/2);
+  gctx.stroke();
+
+  // Diagonal
+  gctx.strokeStyle = 'rgba(180,140,80,0.07)';
+  gctx.beginPath();
+  gctx.moveTo(0,0); gctx.lineTo(w,h);
+  gctx.moveTo(w,0); gctx.lineTo(0,h);
+  gctx.stroke();
+  gctx.setLineDash([]);
+}
+
+function updateCanvasHint() {
+  canvasSection.dataset.hint = state.drawMode === 'over' ? t('hint_over') : t('hint_free');
+}
+
+function updateGuideChar(r) {
+  guideChar.textContent = r.c;
+  guideChar.style.opacity = state.drawMode === 'over' ? '0.5' : '0.12';
+}
+
+function clearCanvas() {
+  if (!ctx) return;
+  ctx.clearRect(0, 0, drawCanvas.width, drawCanvas.height);
+}
+
+function flashClear() {
+  const div = document.createElement('div');
+  div.className = 'clear-flash';
+  canvasSection.appendChild(div);
+  setTimeout(() => div.remove(), 300);
+  clearCanvas();
+}
+
+// ═══════════════════════════════════════
+//  DRAWING
+// ═══════════════════════════════════════
+function getPos(e) {
+  const rect = drawCanvas.getBoundingClientRect();
+  const src = e.touches ? e.touches[0] : e;
+  return { x: src.clientX - rect.left, y: src.clientY - rect.top };
+}
+
+function startDraw(e) {
+  e.preventDefault();
+  state.isDrawing = true;
+  state.touchStart = Date.now();
+  const pos = getPos(e);
+  state.lastX = pos.x;
+  state.lastY = pos.y;
+
+  ctx.beginPath();
+  ctx.moveTo(pos.x, pos.y);
+
+  // Start timer for tap detection
+  state.touchTimer = setTimeout(() => { state.touchTimer = null; }, 250);
+}
+
+function draw(e) {
+  e.preventDefault();
+  if (!state.isDrawing) return;
+  // If moved significantly, cancel tap
+  const pos = getPos(e);
+  const dist = Math.hypot(pos.x - state.lastX, pos.y - state.lastY);
+
+  if (dist < 1) return;
+  clearTimeout(state.touchTimer);
+  state.touchTimer = null;
+
+  ctx.lineWidth = state.brushSize;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+  ctx.strokeStyle = 'rgba(20,12,4,0.88)';
+  ctx.shadowColor = 'rgba(0,0,0,0.15)';
+  ctx.shadowBlur = 1;
+
+  ctx.beginPath();
+  ctx.moveTo(state.lastX, state.lastY);
+  ctx.lineTo(pos.x, pos.y);
+  ctx.stroke();
+
+  state.lastX = pos.x;
+  state.lastY = pos.y;
+}
+
+function endDraw(e) {
+  e.preventDefault();
+  if (!state.isDrawing) return;
+  state.isDrawing = false;
+
+  const elapsed = Date.now() - state.touchStart;
+  if (state.touchTimer !== null || elapsed < 200) {
+    // It was a tap — clear
+    const pos = getPos({...e, touches: e.changedTouches || null});
+    flashClear();
+  }
+  clearTimeout(state.touchTimer);
+  state.touchTimer = null;
+}
+
+// Touch swipe for navigation
+let swipeStartX = null;
+function onTouchStart(e) {
+  swipeStartX = e.touches[0].clientX;
+  startDraw(e);
+}
+function onTouchEnd(e) {
+  endDraw(e);
+  if (swipeStartX !== null) {
+    const dx = e.changedTouches[0].clientX - swipeStartX;
+    // Only navigate if no drawing happened (quick swipe)
+    if (Math.abs(dx) > 60 && Date.now() - state.touchStart < 400) {
+      if (dx < 0) navigate(1);
+      else navigate(-1);
+    }
+    swipeStartX = null;
+  }
+}
+
+function navigate(dir) {
+  state.currentIndex = (state.currentIndex + dir + RADICALS.length) % RADICALS.length;
+  renderStudy();
+}
+
+// ═══════════════════════════════════════
+//  EVENT LISTENERS
+// ═══════════════════════════════════════
+function setupEventListeners() {
+  // Drawing events
+  drawCanvas.addEventListener('mousedown', startDraw);
+  drawCanvas.addEventListener('mousemove', draw);
+  drawCanvas.addEventListener('mouseup', endDraw);
+  drawCanvas.addEventListener('mouseleave', endDraw);
+  drawCanvas.addEventListener('touchstart', onTouchStart, { passive: false });
+  drawCanvas.addEventListener('touchmove', draw, { passive: false });
+  drawCanvas.addEventListener('touchend', onTouchEnd, { passive: false });
+
+  // Navigation
+  prevBtn.onclick = () => navigate(-1);
+  nextBtn.onclick = () => navigate(1);
+  backBtn.onclick = () => {
+    state.view = 'grid';
+    studyView.classList.add('hidden');
+    gridView.classList.remove('hidden');
+  };
+
+  // Keyboard
+  document.addEventListener('keydown', e => {
+    if (state.view !== 'study') return;
+    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') navigate(1);
+    if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') navigate(-1);
+    if (e.key === ' ' || e.key === 'Escape') flashClear();
+    if (e.key === 'Backspace') { state.view='grid'; studyView.classList.add('hidden'); gridView.classList.remove('hidden'); }
+  });
+
+  // Language
+  langSelect.addEventListener('change', () => {
+    state.lang = langSelect.value;
+    updateLang();
+  });
+
+  // Toggle view
+  toggleViewBtn.addEventListener('click', () => {
+    if (state.view === 'grid') {
+      openStudy(state.currentIndex);
+    } else {
+      state.view = 'grid';
+      studyView.classList.add('hidden');
+      gridView.classList.remove('hidden');
+    }
+  });
+
+  // Brush size
+  bThin.onclick = () => setBrush(2, bThin);
+  bMedium.onclick = () => setBrush(5, bMedium);
+  bThick.onclick = () => setBrush(9, bThick);
+
+  // Mode
+  [modeFree, modeOver].forEach(btn => {
+    btn.onclick = () => {
+      state.drawMode = btn.dataset.mode;
+      modeFree.classList.toggle('active', state.drawMode === 'free');
+      modeOver.classList.toggle('active', state.drawMode === 'over');
+      updateGuideChar(RADICALS[state.currentIndex]);
+      updateCanvasHint();
+    };
+  });
+
+  // Resize
+  window.addEventListener('resize', () => {
+    if (state.view === 'study') resizeCanvas();
+  });
+}
+
+function setBrush(size, activeBtn) {
+  state.brushSize = size;
+  [bThin, bMedium, bThick].forEach(b => b.classList.remove('active'));
+  activeBtn.classList.add('active');
+}
+
+// ═══════════════════════════════════════
+//  LANG UPDATE
+// ═══════════════════════════════════════
+function updateLang() {
+  document.getElementById('back-label').textContent = t('back');
+  document.getElementById('grid-label').textContent = t('strokes');
+  modeFree.textContent = t('free');
+  modeOver.textContent = t('trace');
+  refSection.dataset.label = t('ref');
+  buildStrokeFilter();
+  renderGrid();
+  if (state.view === 'study') {
+    renderStudy();
+  }
+}
+
+// ═══════════════════════════════════════
+//  START
+// ═══════════════════════════════════════
+window.addEventListener('load', init);
+window.addEventListener('resize', () => { buildStrokeFilter(); renderGrid(); });
+</script>
+</body>
+</html>
